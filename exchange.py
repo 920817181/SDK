@@ -1,5 +1,9 @@
 import re
 from collections import OrderedDict
+
+endian_swap_enable =  1
+output_hex = 1
+
 with open('structs.txt', 'r', encoding='utf-8') as f1:
     tmp_data = f1.readlines()
     # 去掉第一行和最后一行，根据结构体文件格式自行调整
@@ -21,6 +25,20 @@ def extract_numbers(input_string):
     tmp = [int(num) for num in numbers]
     return tmp[0]
 
+
+def big_little_endian_swap(original_string):
+    # 拆分原始字符串，并去除空白项
+    parts = original_string.split()
+    parts = [part for part in parts if part.strip()]
+
+    # 反转列表中的元素
+    reversed_parts = parts[::-1]
+
+    # 将元素重新连接成字符串，使用空格分隔
+    modified_string = " ".join(reversed_parts)
+    return modified_string
+
+
 # 数据结果解析
 res = OrderedDict()
 index = 0  # 索引记录，用于定位数据从哪开始解析
@@ -34,12 +52,22 @@ for f in format_data:
     data_size = int(extract_numbers(content))//8
     # 将对应位置的数据提取出来
     tmp_data3 = data[index: index + (data_size * 3)]
+    # 大小端转换，根据需求进行开启或屏蔽
+    if endian_swap_enable == True:
+        tmp_data3 = big_little_endian_swap(tmp_data3)
+
+    if output_hex == 1:
+        # 输出16进制数据 
+        res.update({name: tmp_data3.replace(" ", "")})
+    else:    
+        # 输出10进制数据
+        res.update({name: int(tmp_data3.replace(" ", ""), 16)})
 
 
-    res.update({name: int(tmp_data3.replace(" ", ""), 16)})
+
     # 每次处理后增加字符串偏移量
     index += (data_size*3)
 
 with open('res.txt', 'w+', encoding='utf-8') as f3:
     for k, v in res.items():
-        f3.write('{}:{}\n'.format(k, v))
+        f3.write('{0:<40}:{1:<10}\n'.format(k, v))
